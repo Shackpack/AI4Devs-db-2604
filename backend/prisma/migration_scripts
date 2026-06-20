@@ -1,0 +1,38 @@
+# Migration Scripts Directory
+
+This directory contains TypeScript scripts for safe data migration during the Prisma schema updates.
+
+## Scripts Available
+
+### 1. seedBaseEntities.ts
+Seeds the new base entities (SalaryRange, InterviewType, InterviewFlow, BenefitType) with initial data.
+
+### 2. migrateAddressData.ts
+Migrates existing candidate address data from the `address` field to the new `Address` table.
+
+### 3. seedPositions.ts
+Seeds sample positions with relationships to companies, interview flows, and other entities.
+
+### 4. validateMigration.ts
+Validates that the migration completed successfully and data integrity is maintained.
+
+### 5. rollback.ts
+Provides a rollback mechanism to undo migrations if needed.
+
+### 6. addFullTextIndexes.ts
+Adds full-text search indexes for PostgreSQL (PostgreSQL specific).
+
+### 7. postMigrationHealthCheck.ts
+Performs health checks after migration completion.
+
+## Usage
+
+```bash
+# Run individual scripts
+npx tsx scripts/seedBaseEntities.ts
+npx tsx scripts/migrateAddressData.ts
+npx tsx scripts/validateMigration.ts
+
+# Or run all in sequence
+npm run migrate:all
+```

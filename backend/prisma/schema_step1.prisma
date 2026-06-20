@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENTIDADES EXISTENTES (MANTENIDAS) ============
+
+model Candidate {
+  id        Int       @id @default(autoincrement())
+  firstName String    @db.VarChar(100)
+  lastName  String    @db.VarChar(100)
+  email     String    @unique @db.VarChar(255)
+  phone     String?   @db.VarChar(20)
+  address   String?   @db.VarChar(100) // Mantener temporalmente para migración
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  educations       Education[]
+  workExperiences  WorkExperience[]
+  resumes          Resume[]
+
+  @@index([lastName, firstName])
+  @@map("candidates")
+}
+
+model Education {
+  id          Int       @id @default(autoincrement())
+  institution String    @db.VarChar(100)
+  title       String    @db.VarChar(250)
+  startDate   DateTime
+  endDate     DateTime?
+  candidateId Int       @map("candidate_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("educations")
+}
+
+model WorkExperience {
+  id          Int       @id @default(autoincrement())
+  company     String    @db.VarChar(100)
+  position    String    @db.VarChar(100)
+  description String?   @db.VarChar(200)
+  startDate   DateTime
+  endDate     DateTime?
+  candidateId Int       @map("candidate_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("work_experiences")
+}
+
+model Resume {
+  id         Int       @id @default(autoincrement())
+  filePath   String    @db.VarChar(500) @map("file_path")
+  fileType   String    @db.VarChar(50) @map("file_type")
+  uploadDate DateTime  @default(now()) @map("upload_date")
+  candidateId Int      @map("candidate_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("resumes")
+}
+
+// ============ NUEVAS ENTIDADES BASE (SIN DEPENDENCIAS) ============
+
+model Company {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
+
+model InterviewType {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("interview_types")
+}
+
+model InterviewFlow {
+  id          Int       @id @default(autoincrement())
+  description String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("interview_flows")
+}
+
+model SalaryRange {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  minSalary    Decimal   @db.Decimal(10, 2) @map("min_salary")
+  maxSalary    Decimal   @db.Decimal(10, 2) @map("max_salary")
+  currency     String    @default("USD") @db.VarChar(3)
+  payFrequency String    @default("annually") @map("pay_frequency") @db.VarChar(50)
+  level        String?   @db.VarChar(50)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("salary_ranges")
+}
+
+model BenefitType {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?
+  category    String?   @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("benefit_types")
+}
