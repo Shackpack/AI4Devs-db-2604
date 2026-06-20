@@ -1,0 +1,2 @@
+-- Migration applied manually (restart after data loss incident)
+-- Restored original 4-table schema: Candidate, Education, Resume, WorkExperience

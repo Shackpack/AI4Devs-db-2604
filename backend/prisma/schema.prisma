@@ -1,3 +1,9 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -8,17 +14,325 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Candidate {
-  id             Int              @id @default(autoincrement())
-  firstName      String           @db.VarChar(100)
-  lastName       String           @db.VarChar(100)
-  email          String           @unique @db.VarChar(255)
-  phone          String?          @db.VarChar(15)
-  address        String?          @db.VarChar(100)
-  Education      Education[]
-  Resume         Resume[]
-  WorkExperience WorkExperience[]
+// ============ ENTIDADES BASE ============
+
+model Company {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employees Employee[]
+  positions Position[]
+
+  @@map("companies")
 }
+
+model InterviewType {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  interviewSteps InterviewStep[]
+
+  @@map("interview_types")
+}
+
+model InterviewFlow {
+  id          Int       @id @default(autoincrement())
+  description String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  positions      Position[]
+  interviewSteps InterviewStep[]
+
+  @@map("interview_flows")
+}
+
+model InterviewStep {
+  id              Int       @id @default(autoincrement())
+  interviewFlowId Int       @map("interview_flow_id")
+  interviewTypeId Int       @map("interview_type_id")
+  name            String    @db.VarChar(255)
+  orderIndex      Int       @map("order_index")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  interviewFlow InterviewFlow   @relation(fields: [interviewFlowId], references: [id], onDelete: Cascade)
+  interviewType InterviewType   @relation(fields: [interviewTypeId], references: [id], onDelete: Restrict)
+  interviews    Interview[]
+
+  @@unique([interviewFlowId, orderIndex])
+  @@index([interviewFlowId])
+  @@map("interview_steps")
+}
+
+model SalaryRange {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  minSalary    Decimal   @db.Decimal(10, 2) @map("min_salary")
+  maxSalary    Decimal   @db.Decimal(10, 2) @map("max_salary")
+  currency     String    @default("USD") @db.VarChar(3)
+  payFrequency String    @default("annually") @map("pay_frequency") @db.VarChar(50)
+  level        String?   @db.VarChar(50)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  positions Position[]
+
+  @@map("salary_ranges")
+}
+
+model BenefitType {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?
+  category    String?   @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  positionBenefits PositionBenefit[]
+
+  @@map("benefit_types")
+}
+
+// ============ ENTIDADES PRINCIPALES ============
+
+model Employee {
+  id        Int       @id @default(autoincrement())
+  companyId Int       @map("company_id")
+  name      String    @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  role      String?   @db.VarChar(100)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  interviews Interview[]
+
+  @@index([companyId])
+  @@map("employees")
+}
+
+model Position {
+  id                  Int       @id @default(autoincrement())
+  companyId           Int       @map("company_id")
+  interviewFlowId     Int       @map("interview_flow_id")
+  title               String    @db.VarChar(255)
+  description         String?
+  status              String    @default("active") @db.VarChar(50)
+  isVisible           Boolean   @default(true) @map("is_visible")
+  location            String?   @db.VarChar(255)
+  jobDescription      String?   @map("job_description")
+  salaryRangeId       Int?      @map("salary_range_id")
+  employmentType      String?   @db.VarChar(50)
+  companyDescription  String?   @map("company_description")
+  applicationDeadline DateTime? @map("application_deadline") @db.Date
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  interviewFlow   InterviewFlow     @relation(fields: [interviewFlowId], references: [id], onDelete: Restrict)
+  salaryRange     SalaryRange?      @relation(fields: [salaryRangeId], references: [id])
+  applications    Application[]
+  contacts        PositionContact[]
+  benefits        PositionBenefit[]
+  requirements    Requirement[]
+  responsibilities Responsibility[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([companyId, status])
+  @@index([salaryRangeId, location])
+  @@map("positions")
+}
+
+model Candidate {
+  id        Int       @id @default(autoincrement())
+  firstName String    @db.VarChar(100)
+  lastName  String    @db.VarChar(100)
+  email     String    @unique @db.VarChar(255)
+  phone     String?   @db.VarChar(20)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  addresses        Address[]
+  applications     Application[]
+  educations       Education[]
+  workExperiences  WorkExperience[]
+  resumes          Resume[]
+
+  @@index([lastName, firstName])
+  @@map("candidates")
+}
+
+model Application {
+  id              Int       @id @default(autoincrement())
+  positionId      Int       @map("position_id")
+  candidateId     Int       @map("candidate_id")
+  applicationDate DateTime  @default(now()) @map("application_date") @db.Date
+  status          String    @default("pending") @db.VarChar(50)
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  position   Position   @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  candidate  Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviews Interview[]
+
+  @@unique([positionId, candidateId])
+  @@index([positionId])
+  @@index([candidateId])
+  @@index([status])
+  @@index([positionId, status])
+  @@index([applicationDate, status])
+  @@map("applications")
+}
+
+model Interview {
+  id              Int       @id @default(autoincrement())
+  applicationId   Int       @map("application_id")
+  interviewStepId Int       @map("interview_step_id")
+  employeeId      Int       @map("employee_id")
+  interviewDate   DateTime  @map("interview_date") @db.Date
+  result          String?   @db.VarChar(50)
+  score           Int?
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interviewStep InterviewStep  @relation(fields: [interviewStepId], references: [id], onDelete: Restrict)
+  employee      Employee       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([applicationId])
+  @@index([employeeId])
+  @@index([interviewDate])
+  @@index([employeeId, interviewDate])
+  @@map("interviews")
+}
+
+// ============ ENTIDADES DE NORMALIZACIÓN ============
+
+model Address {
+  id          Int       @id @default(autoincrement())
+  candidateId Int       @map("candidate_id")
+  street      String?   @db.VarChar(255)
+  city        String?   @db.VarChar(100)
+  state       String?   @db.VarChar(100)
+  country     String?   @db.VarChar(100)
+  zipCode     String?   @db.VarChar(20) @map("zip_code")
+  addressType String    @default("home") @map("address_type") @db.VarChar(50)
+  isPrimary   Boolean   @default(true) @map("is_primary")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([candidateId, isPrimary])
+  @@map("addresses")
+}
+
+model PositionContact {
+  id                Int       @id @default(autoincrement())
+  positionId        Int       @map("position_id")
+  contactName       String?   @map("contact_name") @db.VarChar(255)
+  contactEmail      String?   @map("contact_email") @db.VarChar(255)
+  contactPhone      String?   @map("contact_phone") @db.VarChar(20)
+  contactDepartment String?   @map("contact_department") @db.VarChar(100)
+  isPrimary         Boolean   @default(true) @map("is_primary")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([positionId, isPrimary])
+  @@map("position_contacts")
+}
+
+model PositionBenefit {
+  positionId Int    @map("position_id")
+  benefitId  Int    @map("benefit_id")
+  details    String?
+
+  // Relations
+  position Position   @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  benefit  BenefitType @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+
+  @@id([positionId, benefitId])
+  @@index([positionId])
+  @@index([benefitId])
+  @@map("position_benefits")
+}
+
+model Requirement {
+  id               Int       @id @default(autoincrement())
+  positionId       Int       @map("position_id")
+  requirementType  String    @map("requirement_type") @db.VarChar(50) // skill, experience, education, certification, language
+  description      String
+  isMandatory      Boolean   @default(true) @map("is_mandatory")
+  yearsExperience  Int?      @map("years_experience")
+  proficiencyLevel String?   @map("proficiency_level") @db.VarChar(50) // basic, intermediate, advanced, expert
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([positionId, requirementType])
+  @@map("requirements")
+}
+
+model Responsibility {
+  id             Int       @id @default(autoincrement())
+  positionId     Int       @map("position_id")
+  description    String
+  priorityLevel  String    @default("medium") @map("priority_level") @db.VarChar(50) // low, medium, high, critical
+  percentageTime Int?      @map("percentage_time")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([positionId, priorityLevel])
+  @@map("responsibilities")
+}
+
+// ============ ENTIDADES DE AUDITORÍA ============
+
+model AuditLog {
+  id         Int       @id @default(autoincrement())
+  tableName  String    @map("table_name") @db.VarChar(50)
+  recordId   Int       @map("record_id")
+  operation  String    @db.VarChar(50) // INSERT, UPDATE, DELETE
+  oldValues  Json?
+  newValues  Json?
+  changedBy  String?   @map("changed_by") @db.VarChar(255)
+  changedAt  DateTime  @default(now()) @map("changed_at")
+
+  @@index([tableName, recordId])
+  @@index([changedAt])
+  @@map("audit_logs")
+}
+
+// ============ ENTIDADES EXISTENTES (MANTENIDAS) ============
 
 model Education {
   id          Int       @id @default(autoincrement())
@@ -26,21 +340,15 @@ model Education {
   title       String    @db.VarChar(250)
   startDate   DateTime
   endDate     DateTime?
-  candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId Int       @map("candidate_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
   @@map("educations")
-}
-
-model Resume {
-  id          Int       @id @default(autoincrement())
-  filePath    String    @db.VarChar(500)
-  fileType    String    @db.VarChar(50)
-  uploadDate  DateTime  @default(now())
-  candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-
-  @@map("resumes")
 }
 
 model WorkExperience {
@@ -50,8 +358,29 @@ model WorkExperience {
   description String?   @db.VarChar(200)
   startDate   DateTime
   endDate     DateTime?
-  candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId Int       @map("candidate_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
   @@map("work_experiences")
+}
+
+model Resume {
+  id         Int       @id @default(autoincrement())
+  filePath   String    @db.VarChar(500) @map("file_path")
+  fileType   String    @db.VarChar(50) @map("file_type")
+  uploadDate DateTime  @default(now()) @map("upload_date")
+  candidateId Int      @map("candidate_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("resumes")
 }
