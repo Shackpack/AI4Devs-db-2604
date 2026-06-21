@@ -290,6 +290,13 @@ Los errores ocurren porque estamos diseñando algo nuevo (base de datos optimiza
 4. Probar en staging antes de producción
 
 ---
+**Comentario referente a esta parte anterior:** El modelo se volvió loco intentando restablecer una acción que ya había fallado y perdiendo datos entrando en bucle. 
+
+Se procedió a detener el proceso y se volvió al estado inicial la base de datos para continuar con el trabajo.
+
+se eliminó EMERGENCY_RECOVERY_PLAN.md ya que no era necesario y podia interferir en el proceso.
+
+---
 
 ## Prompt 10
 **Fecha:** 2026-06-20 15:04 UTC+02:00  
@@ -515,7 +522,7 @@ BD final: 20 tablas en snake_case, schema alineado con `schema_optimized.prisma`
 ---
 
 ## Prompt 22
-**Fecha:** 2026-06-20 16:51 UTC+02:00  
+**Fecha:** 2026-06-20 16:49 UTC+02:00  
 **Usuario:** unificar todo el proceso sql en un único archivo migration.sql en la carpeta migrations que permita reproducir los pasos realizados
 
 **Respuesta:** Se creó `backend/prisma/migrations/migration_full.sql` unificando todas las fases en orden de ejecución reproducible:
@@ -530,7 +537,7 @@ El archivo es completamente reproducible en una BD limpia con las 4 tablas origi
 ---
 
 ## Prompt 21
-**Fecha:** 2026-06-20 16:49 UTC+02:00  
+**Fecha:** 2026-06-20 16:51 UTC+02:00  
 **Usuario:** se han detenido los procesos node activos, proceder con el paso restante
 
 **Respuesta:** Se completaron los pasos pendientes:
@@ -545,5 +552,19 @@ El archivo es completamente reproducible en una BD limpia con las 4 tablas origi
 - ✅ Cliente Prisma generado y listo para usar en la aplicación
 - ✅ Historial de migraciones limpio y consistente
 - ✅ Cero pérdida de datos en todo el proceso
+
+---
+
+## Prompt 23
+**Fecha:** 2026-06-21 11:43 UTC+02:00  
+**Usuario:** Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate. In `@backend/prisma/prisma_migration_plan_v2.md` around lines 114 - 148, The Phase 2 schema example contains a contradiction: the header states existing models should have "SIN CAMBIOS, SIN @@map" but the Education model immediately below includes `@@map("educations")`. Since Education is an existing table (not a new one created in Phase 2), remove the `@@map("educations")` directive from the Education model in the example. Additionally, ensure that the Resume and WorkExperience models shown below Education also do not include `@@map` directives in the Phase 2 example, and add a clarifying note that explains existing models intentionally omit `@@map` during Phase 2 to avoid triggering unnecessary DROP TABLE and CREATE TABLE operations.
+
+**Respuesta:** Se verificó el fichero `backend/prisma/prisma_migration_plan_v2.md` y se confirmó el error: la sección de Fase 2 mostraba el modelo `Education` con `@@map("educations")` a pesar de que la cabecera indicaba "SIN CAMBIOS, SIN @@map". Se corrigió el ejemplo de Fase 2:
+
+- Eliminado `@@map("educations")` del modelo `Education`.
+- Expandidos los modelos `WorkExperience` y `Resume` explícitamente en el ejemplo, sin `@@map`.
+- Añadida una nota aclaratoria que explica que los modelos existentes omiten `@@map` durante la Fase 2 para evitar que Prisma genere `DROP TABLE` y `CREATE TABLE` que eliminarían los datos.
+
+Validación: se revisó con `grep` la sección de Fase 2 y no queda ningún `@@map` en los modelos existentes (`Candidate`, `Education`, `WorkExperience`, `Resume`); los `@@map` solo aparecen en el contexto explicativo y en los modelos nuevos.
 
 ---

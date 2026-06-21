@@ -183,6 +183,6 @@ INSERT INTO INTERVIEW_TYPE (name, description) VALUES
 
 INSERT INTO INTERVIEW_FLOW (description) VALUES 
 ('Flujo estándar para desarrolladores'),
-('Fluoso rápido para posiciones junior'),
-('Fluso ejecutivo para roles senior'),
-('Fluso técnico especializado');
+('Flujo rápido para posiciones junior'),
+('Flujo ejecutivo para roles senior'),
+('Flujo técnico especializado');

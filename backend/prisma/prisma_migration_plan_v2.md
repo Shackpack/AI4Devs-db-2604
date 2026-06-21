@@ -135,10 +135,30 @@ model Education {
   endDate     DateTime?
   candidateId Int
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  @@map("educations")
 }
-// ... Resume y WorkExperience igual
+
+model WorkExperience {
+  id          Int       @id @default(autoincrement())
+  company     String    @db.VarChar(100)
+  position    String    @db.VarChar(100)
+  description String?   @db.VarChar(200)
+  startDate   DateTime
+  endDate     DateTime?
+  candidateId Int
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model Resume {
+  id          Int      @id @default(autoincrement())
+  filePath    String   @db.VarChar(500)
+  fileType    String   @db.VarChar(50)
+  uploadDate  DateTime
+  candidateId Int
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
 ```
+
+> **Nota:** Los modelos existentes se mantienen intencionalmente **sin `@@map`** durante la Fase 2. Incluir `@@map` provocaría que Prisma genere operaciones `DROP TABLE` de la tabla actual y `CREATE TABLE` con el nuevo nombre, lo que eliminaría los datos existentes. Los `@@map` se aplicarán únicamente en fases posteriores, después de migrar y validar los datos.
 
 Los modelos nuevos sí usan `@@map` porque son tablas nuevas que no existen:
 ```prisma
